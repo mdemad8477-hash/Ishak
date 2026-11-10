@@ -1,0 +1,44 @@
+name: Build Smart Play APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract ZIP files
+        run: |
+          unzip -o SmartPlay-source.zip
+          cp -r SmartPlay/. .
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Build debug + release APK
+        run: gradle assembleDebug assembleRelease --stacktrace
+
+      - name: Collect APKs
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/app-debug.apk out/SmartPlay-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk out/SmartPlay-release.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartPlay-APK
+          path: out/*.apk
+          
